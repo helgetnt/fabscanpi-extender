@@ -6,7 +6,7 @@
    | green         |   short to no | RPi started & fabscan-extender is running.                      |
    | green         |   short       | fabscanpi-server is running after bootup.                       |
    | green         |   no          | ON-State Indicator                                              |
-   |               |               |                                                                 |
+   |---------------|---------------|-----------------------------------------------------------------|
    | red & green   |   yes         | Shutdown/Restart by pressing a Switch.                          |
    |               |               |                                                                 |
    | red           |   yes         | NO Network-Connection! networking-service is restarting.        |
