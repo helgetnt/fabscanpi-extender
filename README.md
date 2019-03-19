@@ -24,7 +24,7 @@ If you use a led with other colors, the colors change to those that match your l
 
 Feel free to change as you like.... ;)
 
-|**Log_output:**|
+|**Log_output:**|   |
 |---------------|---|
 | 0 | disabled[default] |
 | 1 | only console |
