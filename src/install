@@ -1,0 +1,114 @@
+#!/usr/bin/env python
+#coding=utf-8
+__author__ = "HelgeTNT"
+
+#   ╔═════════════════════════════╗
+#   ║ FabscanPI Extender Intaller ║
+#   ╚═════════════════════════════╝
+
+import os
+import sys
+
+#═══════════════════════════════════════════════════════════════════════════════════════════════════════════════
+def grant_root_permission():
+    while os.getuid() != 0:
+        path = os.path.realpath(os.path.join(os.path.dirname(__file__)))+'/'
+        name = os.path.basename(__file__)
+        print " "
+        print "*******************************************************"
+        print "*** SORRY. But you must be ROOT to run this script. ***"
+        print "*******************************************************"
+        #print "* Your FabScanPI should remember your Password for a while. *"
+        print " "
+        os.execv('/usr/bin/sudo', ['/usr/bin/sudo'] + [path+name])
+#═══════════════════════════════════════════════════════════════════════════════════════════════════════════════
+grant_root_permission()
+
+v1 = ['y', 'Y', 'Yes', 'YES','yes']
+v2 = ["", 'a', 'A', 'All', 'ALL', 'all']
+prog = '/opt/fabscanpi-extender'
+init = '/etc/init.d/fabscanpi-extender'
+autofile = '/etc/rc.local'
+
+def autostart_creator():
+    cut = True
+    nod = False
+    data_lines=[]
+    #autofile = 'rc.local'
+    if os.path.isfile(autofile):
+        with open(autofile, "r") as data_file:
+            data_lines = data_file.readlines()
+            for line in data_lines:
+                if str(prog+' &') in line:
+                    nod = True
+                elif str(init+' start &') in line:
+                    cut = False
+        if cut:
+            if not nod:
+                if not os.path.isfile(autofile+'.fs-ext-bak'):
+                    os.system('sudo cp %s %s.fs-ext-bak' % (autofile, autofile))
+                    print autofile+'.fs-ext-bak created.'
+                if os.path.isfile(autofile+'.fs-ext-bak'):
+                    os.system('head -n-1 %s.fs-ext-bak > %s' % (autofile, autofile))
+                    RC_L = open(autofile,"a")
+                    RC_L.write(init+' start &')
+                    RC_L.write('\n\n# Insert commands bevor this line !!!\nexit 0')
+                    RC_L.close()
+            else: print ' Autostart already configured. Without using the Init-Script!'
+        else: print ' Autostart already configured.'
+    else: print ' '+autofile+' was not found...    SORRY.'
+
+def main():
+    print " "
+    print "  ╔═══════════════════════════════════════════════╗ "
+    print "  ║  Welcome to FabscanPI-Extender Installation.  ║ "
+    print "  ╚═══════════════════════════════════════════════╝ "
+    print " "
+    print " This will install to '/opt' & an Init-Script to '/etc/init.d'."
+    print " "
+    install1 = raw_input(" Install now ?    (All/yes/no): ")
+    print " "
+    if install1 in v1 or install1 in v2:
+        if install1 in v2:
+            a = True
+        else: a = False
+        if a:
+            if not os.path.isfile(prog):
+                os.system('sudo cp fabscanpi-extender %s' % (prog))
+                os.system('sudo chmod +x %s' % (prog))
+            else: print ' fabscanpi-extender is already installed.'
+            if not os.path.isfile(init):
+                os.system('sudo cp fabscanpi-extender %s' % (init))
+                os.system('sudo chmod +x %s' % (init))
+            else: print ' Initscript is already installed.'
+            autostart_creator()
+            print "\n Installation finished.\n Bye."
+            exit(0)
+        if not a:
+            v1.extend([""])
+            if not os.path.isfile(prog):
+                os.system('sudo cp fabscanpi-extender %s' % (prog))
+                os.system('sudo chmod +x %s' % (prog))
+            else: print ' fabscanpi-extender is already installed.'
+            install2 = raw_input(" Install Initscript now ?    (Yes/no): ")
+            if install2 in v1:
+                if not os.path.isfile(init):
+                    os.system('sudo cp fabscanpi-extender %s' % (init))
+                    os.system('sudo chmod +x %s' % (init))
+                else: print ' fabscanpi-extender is already installed.'
+            install3 = raw_input(" Autostart via rc.local ?    (Yes/no): ")
+            if install3 in v1:
+                autostart_creator()
+            print "\n Installation finished.\n Bye."
+            exit(0)
+    else:
+        print "\n Installation canceled.\n Bye."
+        exit(0)
+
+if __name__=="__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print "\n Installation canceled.\n Bye."
+        exit(0)
+
