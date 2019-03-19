@@ -21,12 +21,19 @@
 To get the orange color you need a red/green dual-color led.
 If you use 1 red led and 1 green led, you get red led and green led turned on.
 If you use a led with other colors, the colors change to those that match your led.
+
 Feel free to change as you like.... ;)
 
-**Log_output:**
-  0 > disabled[default] | 1 > only console | 2 > only logfile | 3 > to console & logfile
-  set to 1 or 2 > a Logfile will be created => /var/log/fabscanpi/fabscanpi-extender.log
-  pressing the shutdown-button deletes th Logfile
+|**Log_output:**|
+|---------------|---|
+| 0 | disabled[default] |
+| 1 | only console |
+| 2 | only logfile |
+| 3 | to console & logfile |
+
+
+set to 1 or 2 > a Logfile will be created => /var/log/fabscanpi/fabscanpi-extender.log
+pressing the shutdown-button deletes th Logfile
 
 
 **Just use _./install_ to install the Extender. Have fun.... ;)**
