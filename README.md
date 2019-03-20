@@ -24,12 +24,12 @@ If you use a led with other colors, the colors change to those that match your l
 
 Feel free to change as you like.... ;)
 
-|**Log_output:**|   |
-|---------------|---|
-| 0 | disabled[default] |
-| 1 | only console |
-| 2 | only logfile |
-| 3 | to console & logfile |
+|**Log_output:**|                      |
+|---------------|----------------------|
+| 0             | disabled[default]    |
+| 1             | only console         |
+| 2             | only logfile         |
+| 3             | to console & logfile |
 <p>set to 1 or 2 > a Logfile will be created => /var/log/fabscanpi/fabscanpi-extender.log <br>
 pressing the shutdown-button deletes th Logfile </p>
 
