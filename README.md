@@ -33,7 +33,9 @@ Feel free to change as you like.... ;)
 <p>set to 1 or 2 > a Logfile will be created => /var/log/fabscanpi/fabscanpi-extender.log <br>
 pressing the shutdown-button deletes th Logfile </p>
 
+<img src="./schematic/Switch-LED.png" />
 
-**Just use _./install_ to install the Extender. Have fun.... ;)**
+Source (Fritzing): [./schematic/Switch-LED.fzz](./doc/Pool-Control.fzz)
+
 
 
