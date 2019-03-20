@@ -26,7 +26,7 @@ Feel free to change as you like.... ;)
 
 |**Log_output:**|                      |
 |---------------|----------------------|
-| 0             | disabled[default]    |
+| 0             | disabled[_default_]    |
 | 1             | only console         |
 | 2             | only logfile         |
 | 3             | to console & logfile |
