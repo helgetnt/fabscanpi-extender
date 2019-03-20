@@ -35,7 +35,7 @@ pressing the shutdown-button deletes th Logfile </p>
 
 <img src="./schematic/Switch-LED.png" />
 
-Source (Fritzing): [./schematic/Switch-LED.fzz](./doc/Pool-Control.fzz)
+Source (Fritzing): [./schematic/Switch-LED.fzz](./schematic/Switch-LED.fzz)
 
 
 
