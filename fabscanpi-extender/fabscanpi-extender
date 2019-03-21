@@ -1,0 +1,431 @@
+#!/usr/bin/python
+#coding=utf-8
+__author__ = "HelgeTNT"
+
+#   ╔═══════════════════════════╗
+#   ║ FabscanPI Extender Script ║
+#   ╚═══════════════════════════╝
+#   ┏━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+#   ┃  LED (is on)  ┃ is flashing?  ┃ Description                                                     ┃
+#   ┣━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+#   ┃ green         │   short to no │ RPi started & fabscan-extender is running.                      ┃
+#   ┃ green         │   short       │ fabscanpi-server is running after bootup.                       ┃
+#   ┃ green         │   no          │ ON-State Indicator                                              ┃
+#   ┠───────────────┼───────────────┼─────────────────────────────────────────────────────────────────┨
+#   ┃ red & green   │   yes         │ Shutdown/Restart by pressing a Switch.                          ┃
+#   ┠───────────────┼───────────────┼─────────────────────────────────────────────────────────────────┨
+#   ┃ red           │   yes         │ NO Network-Connection! networking-service is restarting.        ┃
+#   ┃ red           │   short       │ fabscanpi-server is not running! -> Starting.                   ┃
+#   ┠───────────────┼───────────────┼─────────────────────────────────────────────────────────────────┨
+#   ┃ orange        │   short       │ Only Lan-Connection, but no Internet.                           ┃
+#   ┃ orange        │   no          │ When script is canceled by 'CTRL + C' (respectively 'STRG + C') ┃
+#   ┗━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+#
+#    To get the orange color you need a red/green dual-color led.
+#    If you use 1 red led and 1 green led, you get red led and green led turned on.
+#    If you use a led with other colors, the colors change to those that match your led.
+#    Feel free to change as you like.... ;)
+#
+#    Log_output =  0 > disabled[default] | 1 > only console | 2 > only logfile | 3 > to console & logfile
+#                  set to 1 or 2 > a Logfile will be created => /var/log/fabscanpi/fabscanpi-extender.log
+#                  pressing the shutdown-button deletes th Logfile
+#
+#
+#    Just use './install' to install the Extender. Have fun.... ;)
+#
+#
+#
+import RPi.GPIO as GPIO
+import sys
+import os
+import time
+import socket
+import fcntl
+import struct
+import subprocess
+import threading
+import logging
+
+Log_output = 0      # 0 > disabled | 1 > only to console | 2 > only to logfile | 3 > to console & logfile
+test_ip = "8.8.8.8"  #google-dns-server
+logfile = '/var/log/fabscanpi/fabscanpi-extender.log'
+
+fabscanpi_server_intervall = 360     # about in seconds
+network_intervall          = 180     # about in seconds
+
+### use the pin number as on the raspi board
+GPIO.setmode(GPIO.BOARD)
+switch = 5                      # watch LOW level on pin 5 to enter sleep mode and wakeup
+green  = 11                     # green LED pin
+red    = 13                     #   red LED pin
+
+#═══════════════════════════════════════════════════════════════════════════════════════════════════════════════
+def grant_root_permission():
+    while os.getuid() != 0:
+        path = os.path.realpath(os.path.join(os.path.dirname(__file__)))+'/'
+        name = os.path.basename(__file__)
+        print " "
+        print "*******************************************************"
+        print "*** SORRY. But you must be ROOT to run this script. ***"
+        print "*******************************************************"
+        ##### "* Your FabScanPI remember you Password for a while.   *"
+        print " "
+        os.execv('/usr/bin/sudo', ['/usr/bin/sudo'] + [path+name])
+#═══════════════════════════════════════════════════════════════════════════════════════════════════════════════
+grant_root_permission()
+#═══════════════════════════════════════════════════════════════════════════════════════════════════════════════
+# LOGGER #
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s  -  %(message)s", "%Y-%m-%d %H:%M:%S")
+if Log_output == 1:
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+elif Log_output == 2:
+    logfile_handler = logging.FileHandler(logfile)
+    logfile_handler.setFormatter(formatter)
+    logger.addHandler(logfile_handler)
+elif Log_output == 3:
+    logfile_handler = logging.FileHandler(logfile)
+    logfile_handler.setFormatter(formatter)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(logfile_handler)
+    logger.addHandler(console_handler)
+else:
+    logger.addHandler(logging.NullHandler())
+#═══════════════════════════════════════════════════════════════════════════════════════════════════════════════
+def flash(color, flashtimes):
+    orange = 0
+    if color == 'red':
+        color = red
+        GPIO.output(green, False)
+    elif color == 'green':
+        color = green
+        GPIO.output(red, False)
+    elif color == 'orange':
+        GPIO.output(red, False)
+        GPIO.output(green, False)
+        time.sleep(.5)
+        orange = 1
+    time.sleep(.1)
+    b = 0
+    flashtimes = int(flashtimes)
+    if orange == 0:
+      while b != flashtimes:
+        GPIO.output(color, True)
+        time.sleep(.1)
+        GPIO.output(color, False)
+        time.sleep(.1)
+        b += 1
+    else:
+      while b != flashtimes:
+        GPIO.output(red, True)
+        GPIO.output(green, True)
+        time.sleep(.2)
+        GPIO.output(red, False)
+        GPIO.output(green, False)
+        time.sleep(.2)
+        b += 1
+      GPIO.output(red, False)
+      GPIO.output(green, True)
+
+def led_color(color):
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(green, GPIO.OUT)
+    GPIO.setup(red, GPIO.OUT)
+    if color == 'green':
+        GPIO.output(red, False)
+        GPIO.output(red, False)
+        time.sleep(0.2)
+        GPIO.output(green, True)
+        GPIO.output(green, True)
+    if color == 'red':
+        GPIO.output(green, False)
+        GPIO.output(green, False)
+        time.sleep(0.2)
+        GPIO.output(red, True)
+        GPIO.output(red, True)
+    if color == 'orange':
+        GPIO.output(green, True)
+        GPIO.output(green, True)
+        time.sleep(0.2)
+        GPIO.output(red, True)
+        GPIO.output(red, True)
+
+##########################################################################################
+
+class Blinker(threading.Thread):
+    def __init__(self, color, freq):
+        threading.Thread.__init__(self)
+        self.color = color
+        self.freq = freq    # in sec.
+        self.daemon = True
+        self._stop_event = threading.Event()
+
+    def stop(self):
+        self._stop_event.set()
+
+    def run(self):
+        if self.freq < 0.3:
+            self.freq = 0.3
+        rg = 0
+        orange = 0
+        GPIO.output(red, False)
+        GPIO.output(green, False)
+        if self.color == 'red':
+            self.color = red
+            self.color2 = green
+        if self.color == 'green':
+            self.color = green
+            self.color2 = red
+        if self.color == 'red_green':
+            self.color = red
+            self.color2 = green
+            rg = 1
+        if self.color == 'orange':
+            self.color = red
+            self.color2 = green
+            orange = 1
+        if orange == 1:
+            while not self._stop_event.is_set():
+                GPIO.output(self.color2, True)
+                GPIO.output(self.color, True)
+                time.sleep(self.freq)
+                GPIO.output(self.color, False)
+                GPIO.output(self.color2, False)
+                time.sleep(self.freq)
+        elif rg == 1:
+            while not self._stop_event.is_set():
+                GPIO.output(self.color2, False)
+                time.sleep(0.2)
+                GPIO.output(self.color, True)
+                time.sleep(self.freq)
+                GPIO.output(self.color, False)
+                time.sleep(0.2)
+                GPIO.output(self.color2, True)
+                time.sleep(self.freq)
+        else:
+            while not self._stop_event.is_set():
+                GPIO.output(self.color2, False)
+                GPIO.output(self.color, True)
+                time.sleep(self.freq)
+                GPIO.output(self.color, False)
+                time.sleep(self.freq)
+        if self._stop_event.is_set():
+            GPIO.output(red, False)
+            GPIO.output(green, False)
+            time.sleep(0.2)
+            GPIO.output(green, True)
+        else: pass
+
+#####################################################################################################
+flash_red    = Blinker('red', 0.3)
+flash_green  = Blinker('green', 0.3)
+flash_orange = Blinker('orange', 0.3)
+flash_rg     = Blinker('red_green', 0.4)
+
+def card_check():
+    cards = subprocess.check_output('sudo ls /sys/class/net | grep -v lo', shell=True).split()
+    lan   = False
+    inet  = False
+    for c in cards:
+        logger.info("%s -> Testing...." % (c))
+        chk_active_card = "ip -o addr |grep '%s    inet '" % (c)
+        get_active_card = subprocess.call(chk_active_card, shell=True, stdout=subprocess.PIPE)
+        ping = "ping -c 1 -I "
+        if not get_active_card:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            ip = socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', c[:15]))[20:24])
+            if ip:
+                try:
+                    r = subprocess.check_output('sudo route | grep default', shell=True)
+                    router = r.split()[1]
+                except subprocess.CalledProcessError:
+                    r = ip.split(".")
+                    router = r[0]+"."+r[1]+"."+r[2]+".1"
+                lan_resp = subprocess.call([ping+c+" "+router], shell=True, stdout=subprocess.PIPE)
+                inet_resp = subprocess.call([ping+c+" "+test_ip], shell=True, stdout=subprocess.PIPE)
+                if not lan_resp:
+                        lan = True
+                        logger.info("%s -> LAN-Response      -> Success" % (c))
+                else: logger.info("%s -> LAN-Response      -> Failed" % (c))
+                if not inet_resp:
+                        inet = True
+                        logger.info("%s -> INTERNET-Response -> Success" % (c))
+                else: logger.info("%s -> INTERNET-Response -> Failed" % (c))
+            else: logger.info("%s -> LAN- & INTERNET-Response -> Failed" % (c))
+        else: logger.info("%s -> NOT connected !!!" % (c))
+    return lan, inet
+
+def network_check():
+    init  = False
+    state = True
+    count = 0
+    flash_red = Blinker('red', 0.3)
+    while init == False:
+        lan, inet = card_check()
+        if not lan and not inet:
+            logger.info("NO Networkconnection !!! Restarting networking-service.")
+            flash('red', 5)
+            flash('green', 5)
+            flash('red', 5)
+            flash('green', 5)
+            flash_red = Blinker('red', 0.3)
+            flash_red.start()
+            subprocess.call('sudo /etc/init.d/networking restart', shell=True, stdout=subprocess.PIPE)
+            time.sleep(3)
+            state = False
+        if lan and not inet:
+            logger.info("You have only Lan, but no Internet.")
+            flash_red.stop()
+            time.sleep(0.2)
+            flash('orange', 20)
+            time.sleep(0.2)
+            led_color('green')
+            init = True
+        if lan and inet:
+            logger.info("You have Lan and Internet.")
+            flash_red.stop()
+            time.sleep(0.2)
+            led_color('green')
+            init = True
+        if count == 5:
+            logger.info("... i am giving up !!!")
+            flash_red.stop()
+            flash_red = Blinker('red', 0.5)
+            flash_red.start()
+            init = True
+        count += 1
+    return state
+
+def fabscanpi_server_check():
+    flash_orange = Blinker('orange', 0.3)
+    state = False
+    fss = "sudo /etc/init.d/fabscanpi-server status | grep -c 'fabscanpi-server: not running.'"
+    ps = subprocess.call("sudo ps -A | grep -c 'fabscanpi-serve'", shell=True, stdout=subprocess.PIPE)
+    if ps:
+        logger.info("Processlist -> FabScanPi-Server not found.")
+        logger.info("FabScanPi-Server wird (neu)gestarted.")
+        flash_orange.start()
+        subprocess.call("sudo /etc/init.d/fabscanpi-server stop && sudo /etc/init.d/fabscanpi-server start", shell=True, stdout=subprocess.PIPE)
+        time.sleep(8)
+        if subprocess.call(fss, shell=True, stdout=subprocess.PIPE):
+            logger.info("FabScanPi-Server is running.")
+            state = True
+            flash_orange.stop()
+            time.sleep(0.2)
+            led_color('green')
+        flash_orange.stop()
+        time.sleep(0.2)
+        led_color('green')
+    if not ps:
+        if subprocess.call(fss, shell=True, stdout=subprocess.PIPE):
+            logger.info("FabScanPi-Server is running.")
+            state = True
+            led_color('green')
+        elif not subprocess.call(fss, shell=True, stdout=subprocess.PIPE):
+            logger.info("FabScanPi-Server wird (neu)gestarted.")
+            flash_orange.start()
+            subprocess.call("sudo /etc/init.d/fabscanpi-server start", shell=True, stdout=subprocess.PIPE)
+            time.sleep(8)
+            if subprocess.call(fss, shell=True, stdout=subprocess.PIPE):
+                logger.info("FabScanPi-Server is running.")
+                state = True
+                flash_orange.stop()
+                time.sleep(0.2)
+                led_color('green')
+            flash_orange.stop()
+            time.sleep(0.2)
+            led_color('green')
+    flash_orange.stop()
+    led_color('green')
+    return state
+
+def main():
+    F_int =fabscanpi_server_intervall*2
+    N_int =network_intervall*2
+    count = 0
+    a = 0
+    fresh_boot = 1
+    flash('green', 15)
+    led_color('green')
+    while True:
+        flash_red    = Blinker('red', 0.3)
+        flash_green  = Blinker('green', 0.3)
+        flash_orange = Blinker('orange', 0.3)
+        flash_rg     = Blinker('red_green', 0.4)
+        if not (GPIO.input(switch)):
+          time.sleep(1)
+          if fresh_boot == 0 and a != F_int and count !=N_int:
+            if test == 0:
+                logger.info("*** SYSTEM SHUTDOWN ***")
+                flash_rg.start()
+                time.sleep(5)
+                if os.path.isfile(logfile):
+                    os.remove(logfile)
+                os.system("sudo shutdown -h now")
+            if test == 1:
+                logger.info("Button-Test...")
+                print 'flashing red...'
+                flash_rg.start()
+                time.sleep(5)
+                flash_rg.stop()
+                time.sleep(1)
+                print 'flashing green...'
+                flash_green.start()
+                time.sleep(3)
+                flash_green.stop()
+                time.sleep(1)
+                print '................'
+          else: print 'SORRY. Not available at the moment.'
+        time.sleep(0.5)
+        a += 1
+        if fresh_boot == 1:
+          if a == 5:
+            if not fabscanpi_server_check():
+                a = 4
+                fresh_boot = 1
+            else:
+                flash('green', 15)
+                led_color('green')
+                fresh_boot = 0
+                a = 0
+        if a == F_int:
+            if not fabscanpi_server_check():
+                a = F_int - 21
+                flash_orange.stop()
+            else:
+                a = 0
+                flash_orange.stop()
+        if count == N_int:
+            logger.info("Network-Check...")
+            if not network_check():
+                count = N_int - 29
+            else:
+                count = 0
+        count += 1
+
+
+test = 0     # Default
+#test = 1    # only for testing by pushing the switch
+
+if __name__=="__main__":
+    try:
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(green, GPIO.OUT)
+        GPIO.output(green, True)
+        GPIO.setup(red, GPIO.OUT)
+        GPIO.output(red, False)
+        GPIO.setup(switch, GPIO.IN)
+        main()
+    except KeyboardInterrupt:
+        flash('red', 5)
+        led_color('green')
+        print "\nBye"
+        exit(0)
+    except RuntimeError as e:
+        led_color('green')
+        logger.info("\nERROR: %s\n" % (e))
+        print "\nBye"
