@@ -15,7 +15,7 @@
 | red           |   short       | fabscanpi-server is not running! -> Starting.                   |
 |               |               |                                                                 |
 | orange        |   short       | Only Lan-Connection, but no Internet.                           |
-| orange        |   no          | ~~When script is canceled by 'CTRL + C' (respectively 'STRG + C')~~ |
+| orange        |   no          | not yet -> but in future it should turn on if scan is aktive    |
 
 
 <p>To get the orange color you need a red/green dual-color led. <br>
