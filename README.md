@@ -15,7 +15,7 @@
 | red           |   short       | fabscanpi-server is not running! -> Starting.                   |
 |               |               |                                                                 |
 | orange        |   short       | Only Lan-Connection, but no Internet.                           |
-| orange        |   no          | not yet -> but in future it should turn on if scan is aktive    |
+| orange        |   no          | Scanner is working.                                             |
 
 
 <p>To get the orange color you need a red/green dual-color led. <br>
@@ -26,7 +26,7 @@ Feel free to change as you like.... ;)
 
 |**Log_output:**|                      |
 |---------------|----------------------|
-| 0             | disabled[_default_]    |
+| 0             | disabled[_default_]  |
 | 1             | only console         |
 | 2             | only logfile         |
 | 3             | to console & logfile |

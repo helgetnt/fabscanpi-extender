@@ -18,7 +18,7 @@ __author__ = "HelgeTNT"
 #   ┃ red           │   short       │ fabscanpi-server is not running! -> Starting.                   ┃
 #   ┠───────────────┼───────────────┼─────────────────────────────────────────────────────────────────┨
 #   ┃ orange        │   short       │ Only Lan-Connection, but no Internet.                           ┃
-#   ┃ orange        │   no          │ not yet -> but in future it should turn on if scan is aktive    ┃
+#   ┃ orange        │   no          │ Scanner is working.                                             ┃
 #   ┗━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 #
 #    To get the orange color you need a red/green dual-color led.
@@ -346,6 +346,8 @@ def fabscanpi_server_check():
 def main():
     F_int =fabscanpi_server_intervall*2
     N_int =network_intervall*2
+    is_scanning = False
+    init = False
     count = 0
     a = 0
     fresh_boot = 1
@@ -390,6 +392,7 @@ def main():
             else:
                 flash('green', 15)
                 led_color('green')
+                init = True
                 fresh_boot = 0
                 a = 0
         if a == F_int:
@@ -397,6 +400,7 @@ def main():
                 a = F_int - 21
                 flash_orange.stop()
             else:
+                init = True
                 a = 0
                 flash_orange.stop()
         if count == N_int:
@@ -406,6 +410,17 @@ def main():
             else:
                 count = 0
         count += 1
+        if init:
+            #cpu = 0
+            #run = subprocess.check_output('ps -C fabscanpi-serve -o %cpu |grep -v %CPU', shell=True).split()
+            mem = 0
+            run = subprocess.check_output('ps -C fabscanpi-serve -o %mem |grep -v %MEM', shell=True).split()
+            if run:
+                for i in run: mem += float(i)
+            if mem >= 200       : is_scanning = True 
+            if mem < 100        : is_scanning = False
+            if is_scanning      : led_color('orange')
+            if not is_scanning  : led_color('green')
 
 
 test = 0     # Default
