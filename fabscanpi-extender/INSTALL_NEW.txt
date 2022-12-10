@@ -1,0 +1,10 @@
+NICHT DAS ORIGINAL INSTALL SCRIPT AUSFÜHREN!!
+
+1. sudo cp fabscanpi-extender /opt/fabscanpi-extender
+2. sudo cp fabscanpi-extender.initd /etc/init.d/fabscanpi-extender
+3. sudo update-rc.d fabscanpi-extender defaults
+
+sudo service fabscanpi-extender status
+sudo service fabscanpi-extender start
+sudo service fabscanpi-extender stop
+sudo service fabscanpi-extender resstart
