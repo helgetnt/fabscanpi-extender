@@ -64,12 +64,12 @@ def grant_root_permission():
     while os.getuid() != 0:
         path = os.path.realpath(os.path.join(os.path.dirname(__file__)))+'/'
         name = os.path.basename(__file__)
-        print " "
-        print "*******************************************************"
-        print "*** SORRY. But you must be ROOT to run this script. ***"
-        print "*******************************************************"
-        ##### "* Your FabScanPI remember you Password for a while.   *"
-        print " "
+        print (" ")
+        print ("*******************************************************")
+        print ("*** SORRY. But you must be ROOT to run this script. ***")
+        print ("*******************************************************")
+        ##### ("* Your FabScanPI remember you Password for a while.   *")
+        print (" ")
         os.execv('/usr/bin/sudo', ['/usr/bin/sudo'] + [path+name])
 #═══════════════════════════════════════════════════════════════════════════════════════════════════════════════
 grant_root_permission()
@@ -370,18 +370,18 @@ def main():
                 os.system("sudo shutdown -h now")
             if test == 1:
                 logger.info("Button-Test...")
-                print 'flashing red...'
+                print ('flashing red...')
                 flash_rg.start()
                 time.sleep(5)
                 flash_rg.stop()
                 time.sleep(1)
-                print 'flashing green...'
+                print ('flashing green...')
                 flash_green.start()
                 time.sleep(3)
                 flash_green.stop()
                 time.sleep(1)
-                print '................'
-          else: print 'SORRY. Not available at the moment.'
+                print ('................')
+          else: print ('SORRY. Not available at the moment.')
         time.sleep(0.5)
         a += 1
         if fresh_boot == 1:
@@ -438,9 +438,9 @@ if __name__=="__main__":
     except KeyboardInterrupt:
         flash('red', 5)
         led_color('green')
-        print "\nBye"
+        print ("\nBye")
         exit(0)
     except RuntimeError as e:
         led_color('green')
         logger.info("\nERROR: %s\n" % (e))
-        print "\nBye"
+        print ("\nBye")
