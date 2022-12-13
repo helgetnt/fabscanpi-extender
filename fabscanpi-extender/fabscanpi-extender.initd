@@ -1,19 +1,20 @@
 #!/bin/sh
+# /etc/init.d/fabscanpi-extender
+### BEGIN INIT INFO
+# Provides:          fabscanpi-extender
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Should-Start:      $time
+# Should-Stop:       $time
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start and stop the fabscanpi-extender
+# Description:       fabscanpi-extender daemon
+### END INIT INFO
 
 #############################################
 ###        optionales Init Script         ###
 #############################################
-
-### BEGIN INIT INFO
-# Author            : HelgeTNT
-# Provides          : fabscanpi-extender
-# Required-Start    : $remote_fs $syslog
-# Required-Stop     : $remote_fs $syslog
-# Default-Start     : 2 3 4 5
-# Default-Stop      : 0 1 6
-# Short-Description : fabscanpi-extender initscript
-# Description       : fabscanpi-extender initscript
-### END INIT INFO
  
 # Change the next 3 lines to suit where you install your script and what you want to call it
 DIR=/opt
